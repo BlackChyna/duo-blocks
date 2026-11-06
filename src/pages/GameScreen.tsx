@@ -92,6 +92,30 @@ export function GameScreen() {
     return nextCampaignLevel(meta.level.number);
   }, [gameOver, evaluation, meta]);
 
+  // Live-clear: objective already met while still playing — the target glows
+  // and a floating NEXT LEVEL pill lets the player skip ahead instantly.
+  const targetCleared = useMemo(() => {
+    if (gameOver || !state || !meta?.level || meta.mode !== 'campaign') return false;
+    return engine.evaluateObjective(meta.level, state).complete;
+  }, [gameOver, state, meta]);
+
+  // bank the cleared result once, the moment it happens (idempotent merge)
+  const recordedSetRef = useRef<Set<string>>(new Set());
+  const clearKey = state ? `${state.seed}:${targetCleared}` : 'none';
+  useEffect(() => {
+    if (!targetCleared || recordedSetRef.current.has(clearKey)) return;
+    recordedSetRef.current.add(clearKey);
+    useGameStore.getState().recordLiveClear();
+    audio.objectiveGlow();
+  }, [targetCleared, clearKey]);
+
+  const handleLiveNextLevel = () => {
+    if (!meta || meta.mode !== 'campaign' || !meta.level) return;
+    const n = nextCampaignLevel(meta.level.number);
+    if (!n) return;
+    useGameStore.getState().startGame({ mode: 'campaign', level: n });
+  };
+
   const handleNextLevel = () => {
     if (!nextLevel) return;
     useGameStore.getState().startGame({ mode: 'campaign', level: nextLevel });
@@ -167,8 +191,24 @@ export function GameScreen() {
           </div>
 
           <div className="flex flex-col items-end gap-1.5">
-            <div className="rounded-full bg-[var(--db-surface)] px-3 py-1.5 text-xs font-bold ring-1 ring-white/10">
-              {objectiveText(meta, state)}
+            <div className="relative">
+              <div
+                className={`rounded-full bg-[var(--db-surface)] px-3 py-1.5 text-xs font-bold ring-1 ring-white/10 ${
+                  targetCleared ? 'db-target-glow' : ''
+                }`}
+              >
+                {objectiveText(meta, state)}
+              </div>
+              {targetCleared && (
+                <button
+                  type="button"
+                  onClick={handleLiveNextLevel}
+                  aria-label="Target cleared — go to next level"
+                  className="db-pop absolute bottom-full right-0 mb-2 whitespace-nowrap rounded-full bg-[var(--db-mint)] px-3.5 py-2 text-[11px] font-black text-[#0b1026] shadow-lg shadow-[var(--db-mint)]/20 active:scale-95"
+                >
+                  NEXT LEVEL ▶
+                </button>
+              )}
             </div>
             {combo >= 2 && (
               <div

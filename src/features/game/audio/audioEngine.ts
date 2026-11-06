@@ -16,9 +16,12 @@ import {
   comboMidi,
   VICTORY_ARP,
   DEFEAT_ARP,
-  MUSIC_BARS,
-  DRUM_PATTERN,
+  SONGS,
+  DRUM_VARIANTS,
+  expandSong,
   beatSeconds,
+  type SequencedBar,
+  type DrumPattern,
 } from './notes';
 
 export type AudioMode = 'all' | 'sfx' | 'off';
@@ -197,12 +200,23 @@ class AudioEngine {
     });
   }
 
+  /** Soft two-note chime when the objective turns "technically cleared". */
+  objectiveGlow(): void {
+    if (this.mode === 'off' || !this.ensure()) return;
+    const t0 = this.ctx!.currentTime;
+    this.tone(midiToHz(88), t0, 0.5, { type: 'sine', peak: 0.09 });
+    this.tone(midiToHz(93), t0 + 0.12, 0.55, { type: 'triangle', peak: 0.08 });
+  }
+
   // -------------------------------------------------------- background loop
   startMusic(): void {
     if (this.mode === 'off' || this.mode === 'sfx') return;
     if (!this.ensure() || !this.ctx || !this.musicBus) return;
     if (this.schedulerId !== null) return; // already playing
-    this.barIndex = 0;
+    // every music session starts from song one, then the playlist rolls on
+    this.songIdx = 0;
+    this.barCursor = 0;
+    this.barsCacheSong = -1;
     this.nextBarTime = this.ctx.currentTime + 0.15;
     // slightly warm up with a first soft pad, then keeps rolling
     this.schedulerId = window.setInterval(() => this.scheduleAhead(), 150);
@@ -302,25 +316,47 @@ class AudioEngine {
     src.start(start, Math.random() * 0.4, 0.13);
   }
 
-  private scheduleDrums(barStart: number, blockIdx: number, eighth: number): void {
+  private scheduleDrums(barStart: number, pattern: DrumPattern, eighth: number, fill: boolean): void {
     for (let i = 0; i < 8; i++) {
       const t = barStart + i * eighth;
-      if (DRUM_PATTERN.kick[i]) this.kick(t);
-      if (blockIdx % 8 === 7 && DRUM_PATTERN.extraKick[i]) this.kick(t);
-      if (DRUM_PATTERN.snare[i]) this.snare(t);
-      if (DRUM_PATTERN.hatOpen[i]) this.hat(t, true);
+      if (pattern.kick[i]) this.kick(t);
+      if (pattern.snare[i]) this.snare(t);
+      if (pattern.hatOpen[i]) this.hat(t, true);
       else this.hat(t, false);
+      if (fill && i >= 5) this.snare(t); // tiny clap roll into the next phrase
     }
+  }
+
+  private songIdx = 0;
+  private barCursor = 0;
+  private barsCacheSong = -1;
+  private barsCache: SequencedBar[] = [];
+
+  private songBuffer(): SequencedBar[] {
+    if (this.barsCacheSong !== this.songIdx) {
+      this.barsCache = expandSong(SONGS[this.songIdx]);
+      this.barsCacheSong = this.songIdx;
+    }
+    return this.barsCache;
   }
 
   private scheduleAhead(): void {
     if (!this.ctx || !this.musicBus) return;
     const musicBus = this.musicBus;
-    const beat = beatSeconds();
-    const beatQ = beat / 2; // eighth
-    const bar = 4 * beat;
     while (this.nextBarTime < this.ctx.currentTime + 0.6) {
-      const info = MUSIC_BARS[this.barIndex % MUSIC_BARS.length];
+      // advance to the next song when the current one runs out of bars —
+      // seamless: the scheduler keeps streaming, the clock never stops
+      let bars = this.songBuffer();
+      if (this.barCursor >= bars.length) {
+        this.songIdx = (this.songIdx + 1) % SONGS.length;
+        this.barCursor = 0;
+        bars = this.songBuffer();
+      }
+      const song = SONGS[this.songIdx];
+      const info = bars[this.barCursor];
+      const beat = beatSeconds(song.bpm);
+      const beatQ = beat / 2; // eighth
+      const bar = 4 * beat;
       const start = this.nextBarTime;
       // pad chord — slow swell, long release
       info.pad.forEach((m, i) => {
@@ -334,29 +370,30 @@ class AudioEngine {
       this.tone(midiToHz(info.bass), start, bar * 0.98, {
         type: 'sine',
         peak: 0.11,
-        bus: this.musicBus,
+        bus: musicBus,
       });
-      // eighth-note arp, gentle accents
-      info.arp.forEach((m, i) => {
+      // bouncy eighth-note arp (rests in the intro), gentle accents
+      info.arp.forEach((n, i) => {
+        if (n === null) return;
         const accent = i % 4 === 0 ? 0.075 : 0.05;
-        this.tone(midiToHz(m + 12), start + i * beatQ, 0.30, {
+        this.tone(midiToHz(n + 12), start + i * beatQ, 0.30, {
           type: 'triangle',
           peak: accent,
           bus: musicBus,
         });
       });
       // occasional high shimmer on alternate bars
-      if (this.barIndex % 4 === 2) {
+      if (this.barCursor % 4 === 2) {
         this.tone(midiToHz(info.pad[3] + 24), start + bar * 0.5, 0.8, {
           type: 'sine',
           peak: 0.03,
           bus: musicBus,
         });
       }
-      // soft drum groove under everything
-      this.scheduleDrums(start, this.barIndex, beatQ);
+      // soft drum groove under everything (this song's variant)
+      this.scheduleDrums(start, DRUM_VARIANTS[song.drums], beatQ, info.fill);
       this.nextBarTime = start + bar;
-      this.barIndex += 1;
+      this.barCursor += 1;
     }
   }
 }

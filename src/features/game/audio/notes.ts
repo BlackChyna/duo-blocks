@@ -42,11 +42,11 @@ export const VICTORY_ARP = [64, 67, 71, 72, 79];
 export const DEFEAT_ARP = [56, 49];
 
 /**
- * Background music loop — bouncy but soothing.
- * Bright 4-chord pop progression: Cmaj → Gmaj → Am7 → Fmaj7 ("I-V-vi-IV").
- * The arp bounces across octaves (root to 3rd to octave and back) so it hops
- * instead of droning; soft synthesized drums layer under it (kick on beats
- * 1 & 3, clap on 2 & 4, hats rolling every eighth — see DRUM_PATTERN).
+ * Background music playlist — FIVE songs, each 3–4 minutes, played in order
+ * with seamless blending (the scheduler streams bar-by-bar into the next song
+ * with no gap), then loops back to song one.
+ * Bright/bouncy pop progressions; the arp bounces across octaves; each song
+ * carries its own soft drum groove (see DRUM_VARIANTS) and its own key/tempo.
  */
 export interface MusicBar {
   pad: number[];      // sustained chord voicing
@@ -54,41 +54,151 @@ export interface MusicBar {
   arp: number[];      // 8 eighth-notes over the chord (bouncy contour)
 }
 
-export const MUSIC_BARS: MusicBar[] = [
+export type DrumStyle = 'standard' | 'halftime' | 'driving' | 'sparse' | 'syncopated';
+
+/** One bar of 8 eighth-notes per drum voice. */
+export interface DrumPattern {
+  kick: boolean[];       // beats 1 & 3 (index 0,4) typically
+  snare: boolean[];      // clap/backbeat (index 2,6) typically
+  hatOpen: boolean[];    // open hat on off-eighths for bounce
+}
+
+export const DRUM_VARIANTS: Record<DrumStyle, DrumPattern> = {
+  standard: {
+    kick: [true, false, false, false, true, false, false, false],
+    snare: [false, false, true, false, false, false, true, false],
+    hatOpen: [false, true, false, true, false, true, false, false],
+  },
+  halftime: {
+    kick: [true, false, false, false, false, false, false, false],
+    snare: [false, false, false, false, true, false, false, false],
+    hatOpen: [false, false, true, false, false, false, true, false],
+  },
+  driving: {
+    kick: [true, false, false, false, true, false, false, true],
+    snare: [false, false, true, false, false, false, true, false],
+    hatOpen: [false, true, false, true, false, true, false, true],
+  },
+  sparse: {
+    kick: [true, false, false, false, false, false, false, false],
+    snare: [false, false, true, false, false, false, false, false],
+    hatOpen: [false, false, false, true, false, false, false, true],
+  },
+  syncopated: {
+    kick: [true, false, false, true, false, false, true, false],
+    snare: [false, false, true, false, false, false, true, false],
+    hatOpen: [true, false, true, false, true, false, true, true],
+  },
+};
+
+export interface SongDef {
+  id: string;
+  name: string;
+  bpm: number;
+  drums: DrumStyle;
+  /** Loop length in bars (4 beats each) — sized for a 3–4 minute runtime. */
+  totalBars: number;
+  /** The 4-bar phrase the whole song is built from. */
+  chords: MusicBar[];
+}
+
+export const SONGS: SongDef[] = [
   {
-    pad: [60, 64, 67, 71],   // Cmaj
-    bass: 36,                // C2
-    arp: [72, 76, 79, 76, 84, 79, 76, 72],  // octave-hop bounce up-down
+    id: 'S1', name: 'Cyril Hop', bpm: 88, drums: 'standard', totalBars: 80,
+    chords: [ // C – G – Am – F
+      { pad: [60, 64, 67, 71], bass: 36, arp: [72, 76, 79, 76, 84, 79, 76, 72] },
+      { pad: [59, 62, 67, 71], bass: 31, arp: [71, 74, 79, 74, 86, 79, 74, 71] },
+      { pad: [57, 60, 64, 67], bass: 33, arp: [69, 72, 76, 72, 81, 76, 72, 69] },
+      { pad: [53, 57, 60, 64], bass: 29, arp: [69, 72, 77, 72, 81, 77, 72, 69] },
+    ],
   },
   {
-    pad: [59, 62, 67, 71],   // Gmaj
-    bass: 31,                // G1
-    arp: [71, 74, 79, 74, 86, 79, 74, 71],  // little leap on 'and of 3'
+    id: 'S2', name: 'Yayra Dusk', bpm: 86, drums: 'sparse', totalBars: 78,
+    chords: [ // Am – F – C – G
+      { pad: [57, 60, 64, 67], bass: 33, arp: [69, 72, 76, 72, 81, 76, 72, 69] },
+      { pad: [53, 57, 60, 64], bass: 29, arp: [65, 69, 72, 69, 77, 72, 69, 65] },
+      { pad: [60, 64, 67, 71], bass: 36, arp: [72, 76, 79, 76, 84, 79, 76, 72] },
+      { pad: [59, 62, 67, 71], bass: 31, arp: [67, 71, 74, 71, 79, 74, 71, 67] },
+    ],
   },
   {
-    pad: [57, 60, 64, 67],   // Am7
-    bass: 33,                // A1
-    arp: [69, 72, 76, 72, 81, 76, 72, 69],  // warm softening section
+    id: 'S3', name: 'Duo Dexter', bpm: 92, drums: 'syncopated', totalBars: 82,
+    chords: [ // G – D – Em – C
+      { pad: [59, 62, 67, 71], bass: 31, arp: [71, 74, 79, 74, 86, 79, 74, 71] },
+      { pad: [50, 54, 57, 62], bass: 38, arp: [74, 78, 81, 74, 86, 81, 78, 74] },
+      { pad: [52, 55, 59, 64], bass: 40, arp: [76, 79, 83, 79, 88, 83, 79, 76] },
+      { pad: [60, 64, 67, 71], bass: 36, arp: [72, 76, 79, 76, 84, 79, 76, 72] },
+    ],
   },
   {
-    pad: [53, 57, 60, 64],   // Fmaj7
-    bass: 29,                // F1
-    arp: [69, 72, 77, 72, 81, 77, 72, 69],  // lifts into the loop turn
+    id: 'S4', name: 'Grid Runner', bpm: 90, drums: 'driving', totalBars: 80,
+    chords: [ // F – C – Dm – Bb
+      { pad: [53, 57, 60, 64], bass: 29, arp: [69, 72, 77, 72, 81, 77, 72, 69] },
+      { pad: [60, 64, 67, 71], bass: 36, arp: [72, 76, 79, 76, 84, 79, 76, 72] },
+      { pad: [50, 53, 57, 62], bass: 38, arp: [74, 77, 81, 77, 86, 77, 74, 77] },
+      { pad: [46, 50, 53, 58], bass: 34, arp: [70, 74, 77, 74, 82, 77, 74, 70] },
+    ],
+  },
+  {
+    id: 'S5', name: 'Night Duo', bpm: 84, drums: 'halftime', totalBars: 76,
+    chords: [ // D – A – Bm – G
+      { pad: [50, 54, 57, 62], bass: 38, arp: [74, 78, 81, 78, 86, 81, 78, 74] },
+      { pad: [57, 61, 64, 69], bass: 33, arp: [73, 77, 81, 77, 85, 81, 77, 73] },
+      { pad: [59, 62, 66, 71], bass: 35, arp: [71, 75, 78, 75, 83, 78, 75, 71] },
+      { pad: [55, 59, 62, 67], bass: 31, arp: [67, 71, 74, 71, 79, 74, 71, 67] },
+    ],
   },
 ];
 
 /**
- * Soft boom-bap drums, one bar of 8 eighth-notes.
- * Index 0 & 4 = beats 1,3 (kick), 2 & 6 = beats 2,4 (clap);
- * an extra kick on the final eighth pushes the loop turn along.
- * Hats roll on every eighth; off-beats open up for bounce.
+ * Deterministic song expansion: cycles of the 4-bar phrase with gentle
+ * variation so ~80 bars never feel like a flat copy:
+ *  - cycle 0 = intro: pads only, arp halved (settles into the groove)
+ *  - every second cycle answers an octave up (capped high)
+ *  - every 4th phrase ends with a fill (engine adds a small clap roll)
  */
-export const DRUM_PATTERN = {
-  kick: [true, false, false, false, true, false, false, false],
-  extraKick: [false, false, false, false, false, false, false, true],
-  snare: [false, false, true, false, false, false, true, false],
-  hatOpen: [false, true, false, true, false, true, false, false],
-} as const;
+export interface SequencedBar {
+  pad: number[];
+  bass: number;
+  arp: (number | null)[]; // null = rest (no note this eighth)
+  drums?: false | true;   // placeholder slot reserved for future per-bar flags
+  fill: boolean;
+}
+
+function capNote(n: number): number {
+  return n > 91 ? n - 12 : n;
+}
+
+export function expandSong(song: SongDef): SequencedBar[] {
+  const out: SequencedBar[] = [];
+  const cycles = Math.ceil(song.totalBars / 4);
+  for (let c = 0; c < cycles; c++) {
+    for (let b = 0; b < 4 && out.length < song.totalBars; b++) {
+      const base = song.chords[b];
+      const isIntro = c === 0;
+      const octaveUp = c % 2 === 1; // every second cycle answers an octave higher
+      const arp: (number | null)[] = base.arp.map((n, i) => {
+        if (isIntro && i % 2 === 1) return null; // sparse intro
+        let note = octaveUp ? n + 12 : n;
+        return capNote(note);
+      });
+      const fill = c % 4 === 3 && b === 3;
+      out.push({ pad: base.pad, bass: base.bass, arp, fill });
+    }
+  }
+  return out;
+}
+
+/** Seconds one bar of a song occupies at its tempo (4 beats/bar). */
+export function barSeconds(bpm: number): number {
+  return 4 * beatSeconds(bpm);
+}
+
+/**
+ * Soft boom-bap groove (one bar of 8 eighth-notes).
+ * kick on 1 & 3, clap on 2 & 4, hats rolling with open off-beats.
+ */
+export const DRUM_PATTERN: DrumPattern = DRUM_VARIANTS.standard;
 
 /** Calm but moving groove tempo. */
 export const MUSIC_BPM = 88;

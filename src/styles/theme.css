@@ -58,6 +58,18 @@ html, body {
 }
 .db-clear-burst { animation: db-clear-burst 0.35s ease-out both; }
 
+/* Objective/target cleared: breathing mint glow so the player knows the level
+   has "technically" been completed while the board is still playable. */
+@keyframes db-target-glow {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(52, 211, 153, 0.0); }
+  50% { box-shadow: 0 0 14px 4px rgba(52, 211, 153, 0.45); }
+}
+.db-target-glow {
+  animation: db-target-glow 1.6s ease-in-out infinite;
+  outline: 1px solid rgba(52, 211, 153, 0.6);
+  color: var(--db-mint);
+}
+
 @keyframes db-float-in {
   0% { transform: translateY(14px); opacity: 0; }
   100% { transform: translateY(0); opacity: 1; }

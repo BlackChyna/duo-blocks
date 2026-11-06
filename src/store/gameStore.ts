@@ -29,6 +29,8 @@ interface GameStoreState {
 
   startGame: (meta: SessionMeta, config?: GameConfig) => void;
   placePiece: (trayIndex: number, r: number, c: number) => void;
+  /** Records the completed objective while the game is still active (live-clear skip-ahead). */
+  recordLiveClear: () => void;
   restart: () => void;
   exitGame: () => void;
 }
@@ -71,6 +73,28 @@ export const useGameStore = create<GameStoreState>((set, get) => ({
       // objective evaluation + progress recording
       finishIfDue(next);
     }
+  },
+
+  /** Live-clear: the campaign objective is already met while play continues —
+   *  bank the result now so skipping ahead via the glowing NEXT button can't
+   *  lose progress. Later records (same seed) just merge better scores. */
+  recordLiveClear: () => {
+    const { state, meta } = get();
+    if (!state || !meta?.level) return;
+    const finished = engine.evaluateObjective(meta.level, state);
+    if (!finished.complete) return;
+    usePlayerStore.getState().recordResult({
+      mode: meta.mode,
+      levelId: meta.level.id,
+      stars: finished.stars,
+      score: state.score,
+      lines: state.linesCleared,
+      blocks: state.blocksPlaced,
+      combo: state.longestCombo,
+      matched: false, // campaign-only path
+      matchId: undefined,
+      challengeId: undefined,
+    });
   },
 
   restart: () => {

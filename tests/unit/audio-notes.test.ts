@@ -4,9 +4,10 @@ import {
   comboMidi,
   clearArp,
   COMBO_LADDER,
-  MUSIC_BARS,
-  DRUM_PATTERN,
-  beatSeconds,
+  SONGS,
+  DRUM_VARIANTS,
+  expandSong,
+  barSeconds,
   isRising,
 } from '../../src/features/game/audio/notes';
 
@@ -32,40 +33,72 @@ describe('audio notes composition', () => {
     expect(isRising(clearArp(3))).toBe(true);
   });
 
-  it('music loop: 4 bars, each bar has pad/bass/8 arp notes, stays in the same key area', () => {
-    expect(MUSIC_BARS).toHaveLength(4);
-    for (const bar of MUSIC_BARS) {
-      expect(bar.pad.length).toBe(4);
-      expect(bar.arp).toHaveLength(8);
-      expect(bar.bass).toBeLessThan(40); // real bass region
-      for (const m of [...bar.pad, ...bar.arp]) expect(m).toBeGreaterThanOrEqual(28);
+  it('music bars: every song phrase has pad/bass/8 arp notes in playable ranges', () => {
+    for (const song of SONGS) {
+      for (const bar of song.chords) {
+        expect(bar.pad.length).toBe(4);
+        expect(bar.arp).toHaveLength(8);
+        expect(bar.bass).toBeLessThan(42); // real bass region
+        for (const m of [...bar.pad, ...bar.arp]) expect(m).toBeGreaterThanOrEqual(28);
+        expect(Math.max(...bar.arp)).toBeLessThanOrEqual(92);
+      }
     }
   });
 
   it('tempo sits in a calm range (60-100 BPM)', () => {
-    const s = beatSeconds();
-    expect(s).toBeGreaterThan(60 / 100);
-    expect(s).toBeLessThan(60 / 60);
-  });
-
-  it('drum groove: kick 1&3, clap 2&4, push kick before the loop turn', () => {
-    expect(DRUM_PATTERN.kick[0] && DRUM_PATTERN.kick[4]).toBe(true);
-    expect(DRUM_PATTERN.snare[2] && DRUM_PATTERN.snare[6]).toBe(true);
-    // closed hats roll every eighth as a fallback layer (engine plays hat always)
-    expect(DRUM_PATTERN.hatOpen.filter(Boolean).length).toBeGreaterThan(0);
-    expect(DRUM_PATTERN.extraKick[7]).toBe(true);
-  });
-
-  it('new loop: bright C-rooted progression, bass wide apart from arp octave', () => {
-    expect(MUSIC_BARS[0].bass).toBe(36);  // C
-    expect(MUSIC_BARS[1].bass).toBe(31);  // G
-    expect(MUSIC_BARS[2].bass).toBe(33);  // A
-    expect(MUSIC_BARS[3].bass).toBe(29);  // F
-    // bouncing contour: no two adjacent identical notes in each bar arp
-    for (const bar of MUSIC_BARS) {
-      for (let i = 1; i < bar.arp.length; i++) expect(bar.arp[i]).not.toBe(bar.arp[i - 1]);
-      const span = Math.max(...bar.arp) - Math.min(...bar.arp);
-      expect(span).toBeGreaterThanOrEqual(12); // octave hops exist → "jumpy"
+    for (const song of SONGS) {
+      const s = barSeconds(song.bpm) / 4; // beat seconds
+      expect(s).toBeGreaterThan(60 / 100);
+      expect(s).toBeLessThan(60 / 60);
     }
+  });
+
+  it('playlist: exactly FIVE songs, each expands to a 3-4 minute loop', () => {
+    expect(SONGS).toHaveLength(5);
+    const ids = new Set(SONGS.map(s => s.id));
+    expect(ids.size).toBe(5);
+    for (const song of SONGS) {
+      const bars = expandSong(song);
+      expect(bars.length).toBe(song.totalBars);
+      const seconds = song.totalBars * barSeconds(song.bpm);
+      expect(seconds).toBeGreaterThanOrEqual(180); // ≥ 3 min
+      expect(seconds).toBeLessThanOrEqual(240);     // ≤ 4 min
+    }
+  });
+
+  it('expansion varies over the run: intro sparse, odd cycles lift an octave', () => {
+    const bars = expandSong(SONGS[0]);
+    const intro = bars[0];
+    const normal = bars[4]; // first bar of cycle 1
+    // intro uses rests on off-eighths, later bars do not
+    expect(intro.arp.filter(n => n === null).length).toBeGreaterThan(0);
+    expect(normal.arp.filter(n => n === null)).toHaveLength(0);
+    // odd-cycle bar sits an octave above its base phrase
+    expect(normal.arp.find(n => n !== null)!).toBeGreaterThan(
+      SONGS[0].chords[0].arp[0],
+    );
+  });
+
+  it('fills appear on the last bar of every 4th phrase', () => {
+    const bars = expandSong(SONGS[1]);
+    for (let i = 0; i < bars.length; i++) {
+      const expectFill = Math.floor(i / 16) === (i + 1) / 16 - 1 && i % 16 === 15;
+      expect(bars[i].fill).toBe(expectFill || ((i + 1) % 16 === 0 && i > 0));
+    }
+    expect(bars.some(b => b.fill)).toBe(true);
+  });
+
+  it('drum groove: kick 1&3, clap 2&4 in the standard variant', () => {
+    const v = DRUM_VARIANTS.standard;
+    expect(v.kick[0] && v.kick[4]).toBe(true);
+    expect(v.snare[2] && v.snare[6]).toBe(true);
+    expect(v.hatOpen.filter(Boolean).length).toBeGreaterThan(0);
+  });
+
+  it('each song carves its own groove + key identity', () => {
+    const styles = new Set(SONGS.map(s => s.drums));
+    expect(styles.size).toBe(SONGS.length);
+    const basses = SONGS.map(s => s.chords[0].bass);
+    expect(new Set(basses).size).toBe(SONGS.length); // different keys
   });
 });
