@@ -9,6 +9,7 @@ import { useEffect, useState } from 'react';
 import { useAppStore } from '../store/appStore';
 import { usePlayerStore } from '../store/playerStore';
 import { goScreen } from '../screens';
+import { audio } from '../features/game/audio/audioEngine';
 import { PlayerAvatar, PrimaryButton, ScreenShell, Toast } from '../components/Shared';
 
 type PlayerName = 'Cyril' | 'Yayra';
@@ -65,7 +66,10 @@ export default function AuthScreen() {
     setError(null);
     const signedIn = await signIn(who, password);
     setBusy(false);
-    if (signedIn) goScreen('home');
+    if (signedIn) {
+      audio.startMusic(); // resume audio inside the sign-in gesture (autoplay-safe)
+      goScreen('home');
+    }
     else setError('Sign-in failed — double-check the password.');
   }
 

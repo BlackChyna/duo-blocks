@@ -15,5 +15,8 @@ export default defineConfig(({ mode }) => ({
   test: {
     environment: 'node',
     include: ['tests/**/*.test.ts'],
+    // keep unit tests offline: even when a real .env exists, services must
+    // behave as unconfigured inside the suite
+    env: { VITE_SUPABASE_URL: '', VITE_SUPABASE_ANON_KEY: '' },
   },
 }));

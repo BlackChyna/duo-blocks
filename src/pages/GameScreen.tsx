@@ -5,6 +5,8 @@ import { useGameStore, type SessionMeta } from '../store/gameStore';
 import { usePlayerStore } from '../store/playerStore';
 import { engine } from '../features/game/engine';
 import { BlockBoard } from '../features/game/board/BlockBoard';
+import { audio } from '../features/game/audio/audioEngine';
+import { AudioToggle } from '../components/AudioToggle';
 import GameOverOverlay from '../components/GameOverOverlay';
 
 /**
@@ -64,6 +66,23 @@ export function GameScreen() {
     return engine.evaluateObjective(level, state);
   }, [state, meta, gameOver]);
 
+  // Sound: mallet placement + line-clear/combo sparkles on every move.
+  useEffect(() => {
+    if (!lastEvents || !lastEvents.placed) return;
+    audio.place();
+    if (lastEvents.linesCleared > 0) {
+      audio.clear(lastEvents.linesCleared, lastEvents.comboAfter);
+    }
+  }, [lastEvents]);
+
+  // Sound: victory fanfare or defeat sting when the game ends.
+  useEffect(() => {
+    if (!gameOver || !evaluation) return;
+    const newBest = meta?.mode === 'endless' && !!state && state.score > endlessBestAtStartRef.current;
+    if (evaluation.complete || newBest) audio.victory();
+    else audio.defeat();
+  }, [gameOver, evaluation, meta, state]);
+
   const handleExit = () => {
     useAppStore.getState().navigate('home');
     useGameStore.getState().exitGame();
@@ -100,14 +119,17 @@ export function GameScreen() {
             {modeLabel(meta.mode, meta.level)}
           </span>
           {!gameOver && (
-            <button
-              type="button"
-              aria-label="Pause game"
-              onClick={() => setPaused(true)}
-              className="flex h-10 w-10 items-center justify-center rounded-full bg-[var(--db-surface)] text-base ring-1 ring-white/10 active:scale-95"
-            >
-              ⏸
-            </button>
+            <div className="flex items-center gap-2">
+              <AudioToggle />
+              <button
+                type="button"
+                aria-label="Pause game"
+                onClick={() => setPaused(true)}
+                className="flex h-10 w-10 items-center justify-center rounded-full bg-[var(--db-surface)] text-base ring-1 ring-white/10 active:scale-95"
+              >
+                ⏸
+              </button>
+            </div>
           )}
         </div>
 
