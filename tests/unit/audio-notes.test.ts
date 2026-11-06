@@ -53,10 +53,10 @@ describe('audio notes composition', () => {
     }
   });
 
-  it('playlist: exactly FIVE songs, each expands to a 3-4 minute loop', () => {
-    expect(SONGS).toHaveLength(5);
+  it('playlist: exactly SIX songs, each expands to a 3-4 minute loop', () => {
+    expect(SONGS).toHaveLength(6);
     const ids = new Set(SONGS.map(s => s.id));
-    expect(ids.size).toBe(5);
+    expect(ids.size).toBe(6);
     for (const song of SONGS) {
       const bars = expandSong(song);
       expect(bars.length).toBe(song.totalBars);
@@ -98,7 +98,11 @@ describe('audio notes composition', () => {
   it('each song carves its own groove + key identity', () => {
     const styles = new Set(SONGS.map(s => s.drums));
     expect(styles.size).toBe(SONGS.length);
-    const basses = SONGS.map(s => s.chords[0].bass);
-    expect(new Set(basses).size).toBe(SONGS.length); // different keys
+    // every song starts on its own root note (own key center)
+    const basses = SONGS.map(s => s.chords[0].bass * 12 + s.chords[0].pad[0]);
+    expect(new Set(basses).size).toBe(SONGS.length);
+    // the last song is the intense one
+    expect(SONGS[5].drums).toBe('punchy');
+    expect(SONGS[5].bpm).toBeGreaterThanOrEqual(96);
   });
 });

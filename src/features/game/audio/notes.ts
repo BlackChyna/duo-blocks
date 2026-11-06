@@ -42,7 +42,7 @@ export const VICTORY_ARP = [64, 67, 71, 72, 79];
 export const DEFEAT_ARP = [56, 49];
 
 /**
- * Background music playlist — FIVE songs, each 3–4 minutes, played in order
+ * Background music playlist — SIX songs, each 3–4 minutes, played in order
  * with seamless blending (the scheduler streams bar-by-bar into the next song
  * with no gap), then loops back to song one.
  * Bright/bouncy pop progressions; the arp bounces across octaves; each song
@@ -54,7 +54,7 @@ export interface MusicBar {
   arp: number[];      // 8 eighth-notes over the chord (bouncy contour)
 }
 
-export type DrumStyle = 'standard' | 'halftime' | 'driving' | 'sparse' | 'syncopated';
+export type DrumStyle = 'standard' | 'halftime' | 'driving' | 'sparse' | 'syncopated' | 'punchy';
 
 /** One bar of 8 eighth-notes per drum voice. */
 export interface DrumPattern {
@@ -88,6 +88,13 @@ export const DRUM_VARIANTS: Record<DrumStyle, DrumPattern> = {
     kick: [true, false, false, true, false, false, true, false],
     snare: [false, false, true, false, false, false, true, false],
     hatOpen: [true, false, true, false, true, false, true, true],
+  },
+  // the intense closer: kick pushes on every quarter + an extra 8th-note
+  // pickup, snare keeps the backbeat, open hats ride hard
+  punchy: {
+    kick: [true, false, false, true, true, false, false, true],
+    snare: [false, false, true, false, false, false, true, false],
+    hatOpen: [false, true, false, true, false, true, true, true],
   },
 };
 
@@ -146,6 +153,15 @@ export const SONGS: SongDef[] = [
       { pad: [57, 61, 64, 69], bass: 33, arp: [73, 77, 81, 77, 85, 81, 77, 73] },
       { pad: [59, 62, 66, 71], bass: 35, arp: [71, 75, 78, 75, 83, 78, 75, 71] },
       { pad: [55, 59, 62, 67], bass: 31, arp: [67, 71, 74, 71, 79, 74, 71, 67] },
+    ],
+  },
+  {
+    id: 'S6', name: 'Rhyme Duel', bpm: 96, drums: 'punchy', totalBars: 80,
+    chords: [ // Em – C – G – D (the intense closer before the loop restarts)
+      { pad: [52, 55, 59, 64], bass: 40, arp: [76, 79, 83, 79, 88, 83, 79, 76] },
+      { pad: [55, 60, 64, 67], bass: 36, arp: [72, 76, 79, 76, 84, 79, 76, 72] },
+      { pad: [55, 59, 62, 67], bass: 31, arp: [71, 74, 79, 74, 86, 79, 74, 71] },
+      { pad: [50, 54, 57, 62], bass: 38, arp: [74, 78, 81, 74, 86, 81, 78, 74] },
     ],
   },
 ];
