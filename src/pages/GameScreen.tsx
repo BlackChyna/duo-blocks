@@ -191,24 +191,12 @@ export function GameScreen() {
           </div>
 
           <div className="flex flex-col items-end gap-1.5">
-            <div className="relative">
-              <div
-                className={`rounded-full bg-[var(--db-surface)] px-3 py-1.5 text-xs font-bold ring-1 ring-white/10 ${
-                  targetCleared ? 'db-target-glow' : ''
-                }`}
-              >
-                {objectiveText(meta, state)}
-              </div>
-              {targetCleared && (
-                <button
-                  type="button"
-                  onClick={handleLiveNextLevel}
-                  aria-label="Target cleared — go to next level"
-                  className="db-pop absolute bottom-full right-0 mb-2 whitespace-nowrap rounded-full bg-[var(--db-mint)] px-3.5 py-2 text-[11px] font-black text-[#0b1026] shadow-lg shadow-[var(--db-mint)]/20 active:scale-95"
-                >
-                  NEXT LEVEL ▶
-                </button>
-              )}
+            <div
+              className={`rounded-full bg-[var(--db-surface)] px-3 py-1.5 text-xs font-bold ring-1 ring-white/10 ${
+                targetCleared ? 'db-target-glow' : ''
+              }`}
+            >
+              {objectiveText(meta, state)}
             </div>
             {combo >= 2 && (
               <div
@@ -220,6 +208,22 @@ export function GameScreen() {
             )}
           </div>
         </div>
+
+        {targetCleared && !gameOver && (
+          <div className="db-target-glow mt-2 flex items-center justify-between gap-3 rounded-full bg-[rgba(52,211,153,0.10)] px-4 py-2 ring-1 ring-[var(--db-mint)]/40">
+            <span className="text-xs font-bold text-[var(--db-mint)]">
+              ✓ TARGET CLEARED — keep going or move on
+            </span>
+            <button
+              type="button"
+              onClick={handleLiveNextLevel}
+              aria-label="Target cleared — go to next level"
+              className="whitespace-nowrap rounded-full bg-[var(--db-mint)] px-3.5 py-2 text-[11px] font-black text-[#0b1026] active:scale-95"
+            >
+              NEXT LEVEL ▶
+            </button>
+          </div>
+        )}
 
         {meta.mode === 'duel' && (
           <div className="mt-3 flex items-center gap-2 text-xs">
