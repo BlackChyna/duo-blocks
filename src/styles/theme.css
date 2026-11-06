@@ -1,0 +1,73 @@
+@import 'tailwindcss';
+
+/* ------------------------------------------------------------------
+   DUO BLOCKS design tokens — dark premium mobile-game look.
+   The PWA frame controls layout; these tokens control identity.
+   ------------------------------------------------------------------ */
+
+:root {
+  /* Surfaces */
+  --db-bg-0: #0b1026; /* deepest background */
+  --db-bg-1: #131a3a;
+  --db-bg-2: #1b2350;
+  --db-surface: rgba(255, 255, 255, 0.06);
+  --db-surface-strong: rgba(255, 255, 255, 0.12);
+  --db-border: rgba(255, 255, 255, 0.1);
+
+  /* Blocks */
+  --db-violet: #8b5cf6;
+  --db-cyan: #22d3ee;
+  --db-coral: #fb7185;
+  --db-yellow: #facc15;
+  --db-mint: #34d399;
+  --db-obstacle: #4b5563;
+
+  /* Text */
+  --db-text: #f1f5fb;
+  --db-text-dim: #9aa7c7;
+
+  --db-radius: 1rem;
+  --db-shadow: 0 10px 30px rgba(4, 7, 22, 0.55);
+
+  font-family: 'Outfit', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  color-scheme: dark;
+}
+
+html, body {
+  margin: 0;
+  padding: 0;
+  background: radial-gradient(1200px 700px at 50% -10%, var(--db-bg-2) 0%, var(--db-bg-0) 60%);
+  color: var(--db-text);
+  overscroll-behavior: none;
+  touch-action: manipulation;
+}
+
+/* funnel-safe drag containment */
+.db-no-select { -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; }
+
+@keyframes db-pop {
+  0% { transform: scale(0.85); opacity: 0; }
+  60% { transform: scale(1.06); }
+  100% { transform: scale(1); opacity: 1; }
+}
+.db-pop { animation: db-pop 0.25s ease-out both; }
+
+@keyframes db-clear-burst {
+  0% { filter: brightness(2.2); transform: scale(1.12); }
+  100% { filter: brightness(1); transform: scale(1); opacity: 0.9; }
+}
+.db-clear-burst { animation: db-clear-burst 0.35s ease-out both; }
+
+@keyframes db-float-in {
+  0% { transform: translateY(14px); opacity: 0; }
+  100% { transform: translateY(0); opacity: 1; }
+}
+.db-float-in { animation: db-float-in 0.35s ease-out both; }
+
+@keyframes db-confetti {
+  0% { transform: translateY(0) rotate(0deg); opacity: 1; }
+  100% { transform: translateY(-120px) rotate(240deg); opacity: 0; }
+}
+
+.safe-top { padding-top: env(safe-area-inset-top); }
+.safe-bottom { padding-bottom: env(safe-area-inset-bottom); }

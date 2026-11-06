@@ -1,0 +1,19 @@
+{
+  "name": "DUO BLOCKS",
+  "short_name": "DUO BLOCKS",
+  "description": "TWO MINDS. ONE PUZZLE BATTLEFIELD. — Cyril × Yayra",
+  "id": "/duo-blocks/",
+  "start_url": "/duo-blocks/",
+  "scope": "/duo-blocks/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#0B1026",
+  "theme_color": "#0B1026",
+  "icons": [
+    { "src": "/duo-blocks/icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "/duo-blocks/icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "/duo-blocks/icons/maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" },
+    { "src": "/duo-blocks/icons/favicon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" }
+  ],
+  "_readme": "PNG icons shipped. APPLE TOUCH ICON NOTE: index.html references /duo-blocks/icons/apple-touch-icon.png (180x180 PNG) — that file is provided too. Unknown manifest members like this one are ignored by browsers."
+}
