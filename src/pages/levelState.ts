@@ -5,6 +5,7 @@
  */
 import type { LevelDef, PlayerLocalProgress } from '../types/game';
 import { accraToday, fnv1aDate } from '../services/daily';
+import { LEVELS } from '../data/levels';
 
 export type LevelStatus = 'locked' | 'playable' | 'completed';
 
@@ -26,6 +27,15 @@ export function levelStatus(
   if (record && record.stars > 0) return 'completed';
   if (level.number <= unlockedUpTo + 1) return 'playable';
   return 'locked';
+}
+
+/**
+ * Seamless flow: after CLEARED campaign level `completedNumber`, the next
+ * level (number+1) — or null on level 500 / invalid input. Pure helper.
+ */
+export function nextCampaignLevel(completedNumber: number): LevelDef | null {
+  if (!Number.isInteger(completedNumber) || completedNumber < 1 || completedNumber >= 500) return null;
+  return LEVELS[completedNumber] ?? null; // LEVELS[0] = level 1 → index n = level n+1
 }
 
 /**

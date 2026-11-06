@@ -17,6 +17,7 @@ import {
   VICTORY_ARP,
   DEFEAT_ARP,
   MUSIC_BARS,
+  DRUM_PATTERN,
   beatSeconds,
 } from './notes';
 
@@ -29,6 +30,8 @@ class AudioEngine {
   private master: GainNode | null = null;
   private sfxBus: GainNode | null = null;
   private musicBus: GainNode | null = null;
+  private drumBus: GainNode | null = null;
+  private noiseBuf: AudioBuffer | null = null;
 
   private mode: AudioMode = 'all';
   private schedulerId: number | null = null;
@@ -102,12 +105,23 @@ class AudioEngine {
         musicBus.connect(musicFilter);
         musicFilter.connect(master);
 
+        const drumBus = ctx.createGain();
+        drumBus.gain.value = 0.65;
+        drumBus.connect(musicFilter);
+
+        // shared 1-second white noise buffer for the percussive voices
+        const noise = ctx.createBuffer(1, ctx.sampleRate, ctx.sampleRate);
+        const data = noise.getChannelData(0);
+        for (let i = 0; i < data.length; i++) data[i] = Math.random() * 2 - 1;
+
         master.connect(ctx.destination);
 
         this.ctx = ctx;
         this.master = master;
         this.sfxBus = sfxBus;
         this.musicBus = musicBus;
+        this.drumBus = drumBus;
+        this.noiseBuf = noise;
       }
       if (this.ctx.state === 'suspended') void this.ctx.resume();
       return true;
@@ -223,6 +237,82 @@ class AudioEngine {
     return this.schedulerId !== null;
   }
 
+  // -------------------------------------------------------- percussion
+  /** Soft synthesized kick: pitch-dropping sine thump. */
+  private kick(start: number): void {
+    if (!this.ctx || !this.drumBus) return;
+    const osc = this.ctx.createOscillator();
+    const g = this.ctx.createGain();
+    osc.type = 'sine';
+    osc.frequency.setValueAtTime(135, start);
+    osc.frequency.exponentialRampToValueAtTime(44, start + 0.11);
+    g.gain.setValueAtTime(0.5, start);
+    g.gain.exponentialRampToValueAtTime(0.001, start + 0.14);
+    osc.connect(g);
+    g.connect(this.drumBus);
+    osc.start(start);
+    osc.stop(start + 0.16);
+  }
+
+  /** Gentle clap/snare: filtered noise burst + a small tonal body. */
+  private snare(start: number): void {
+    if (!this.ctx || !this.drumBus || !this.noiseBuf) return;
+    const src = this.ctx.createBufferSource();
+    src.buffer = this.noiseBuf;
+    const bp = this.ctx.createBiquadFilter();
+    bp.type = 'bandpass';
+    bp.frequency.value = 1900;
+    bp.Q.value = 0.9;
+    const g = this.ctx.createGain();
+    g.gain.setValueAtTime(0.16, start);
+    g.gain.exponentialRampToValueAtTime(0.001, start + 0.11);
+    src.connect(bp);
+    bp.connect(g);
+    g.connect(this.drumBus);
+    src.start(start, Math.random() * 0.4, 0.12);
+    // body
+    const osc = this.ctx.createOscillator();
+    const bg = this.ctx.createGain();
+    osc.type = 'triangle';
+    osc.frequency.setValueAtTime(190, start);
+    bg.gain.setValueAtTime(0.07, start);
+    bg.gain.exponentialRampToValueAtTime(0.001, start + 0.07);
+    osc.connect(bg);
+    bg.connect(this.drumBus);
+    osc.start(start);
+    osc.stop(start + 0.08);
+  }
+
+  /** Closed/open hat: short high-passed tick; open decays longer for bounce. */
+  private hat(start: number, open: boolean): void {
+    if (!this.ctx || !this.drumBus || !this.noiseBuf) return;
+    const src = this.ctx.createBufferSource();
+    src.buffer = this.noiseBuf;
+    const hp = this.ctx.createBiquadFilter();
+    hp.type = 'highpass';
+    hp.frequency.value = 7200;
+    const g = this.ctx.createGain();
+    const peak = open ? 0.055 : 0.04;
+    const decay = open ? 0.12 : 0.035;
+    g.gain.setValueAtTime(peak, start);
+    g.gain.exponentialRampToValueAtTime(0.001, start + decay);
+    src.connect(hp);
+    hp.connect(g);
+    g.connect(this.drumBus);
+    src.start(start, Math.random() * 0.4, 0.13);
+  }
+
+  private scheduleDrums(barStart: number, blockIdx: number, eighth: number): void {
+    for (let i = 0; i < 8; i++) {
+      const t = barStart + i * eighth;
+      if (DRUM_PATTERN.kick[i]) this.kick(t);
+      if (blockIdx % 8 === 7 && DRUM_PATTERN.extraKick[i]) this.kick(t);
+      if (DRUM_PATTERN.snare[i]) this.snare(t);
+      if (DRUM_PATTERN.hatOpen[i]) this.hat(t, true);
+      else this.hat(t, false);
+    }
+  }
+
   private scheduleAhead(): void {
     if (!this.ctx || !this.musicBus) return;
     const musicBus = this.musicBus;
@@ -263,6 +353,8 @@ class AudioEngine {
           bus: musicBus,
         });
       }
+      // soft drum groove under everything
+      this.scheduleDrums(start, this.barIndex, beatQ);
       this.nextBarTime = start + bar;
       this.barIndex += 1;
     }

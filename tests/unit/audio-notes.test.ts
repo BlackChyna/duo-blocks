@@ -5,6 +5,7 @@ import {
   clearArp,
   COMBO_LADDER,
   MUSIC_BARS,
+  DRUM_PATTERN,
   beatSeconds,
   isRising,
 } from '../../src/features/game/audio/notes';
@@ -45,5 +46,26 @@ describe('audio notes composition', () => {
     const s = beatSeconds();
     expect(s).toBeGreaterThan(60 / 100);
     expect(s).toBeLessThan(60 / 60);
+  });
+
+  it('drum groove: kick 1&3, clap 2&4, push kick before the loop turn', () => {
+    expect(DRUM_PATTERN.kick[0] && DRUM_PATTERN.kick[4]).toBe(true);
+    expect(DRUM_PATTERN.snare[2] && DRUM_PATTERN.snare[6]).toBe(true);
+    // closed hats roll every eighth as a fallback layer (engine plays hat always)
+    expect(DRUM_PATTERN.hatOpen.filter(Boolean).length).toBeGreaterThan(0);
+    expect(DRUM_PATTERN.extraKick[7]).toBe(true);
+  });
+
+  it('new loop: bright C-rooted progression, bass wide apart from arp octave', () => {
+    expect(MUSIC_BARS[0].bass).toBe(36);  // C
+    expect(MUSIC_BARS[1].bass).toBe(31);  // G
+    expect(MUSIC_BARS[2].bass).toBe(33);  // A
+    expect(MUSIC_BARS[3].bass).toBe(29);  // F
+    // bouncing contour: no two adjacent identical notes in each bar arp
+    for (const bar of MUSIC_BARS) {
+      for (let i = 1; i < bar.arp.length; i++) expect(bar.arp[i]).not.toBe(bar.arp[i - 1]);
+      const span = Math.max(...bar.arp) - Math.min(...bar.arp);
+      expect(span).toBeGreaterThanOrEqual(12); // octave hops exist → "jumpy"
+    }
   });
 });

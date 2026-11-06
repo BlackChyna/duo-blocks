@@ -4,6 +4,7 @@ import { useAppStore } from '../store/appStore';
 import { useGameStore, type SessionMeta } from '../store/gameStore';
 import { usePlayerStore } from '../store/playerStore';
 import { engine } from '../features/game/engine';
+import { nextCampaignLevel } from './levelState';
 import { BlockBoard } from '../features/game/board/BlockBoard';
 import { audio } from '../features/game/audio/audioEngine';
 import { AudioToggle } from '../components/AudioToggle';
@@ -82,6 +83,20 @@ export function GameScreen() {
     if (evaluation.complete || newBest) audio.victory();
     else audio.defeat();
   }, [gameOver, evaluation, meta, state]);
+
+  // Seamless flow: on a cleared campaign level, offer the next one directly
+  // from the overlay — no exit → mode → level-select round-trip.
+  const nextLevel = useMemo(() => {
+    if (!gameOver || !evaluation?.complete) return null;
+    if (!meta || meta.mode !== 'campaign' || !meta.level) return null;
+    return nextCampaignLevel(meta.level.number);
+  }, [gameOver, evaluation, meta]);
+
+  const handleNextLevel = () => {
+    if (!nextLevel) return;
+    useGameStore.getState().startGame({ mode: 'campaign', level: nextLevel });
+    // state/meta are replaced → gameOver flips false → overlay unmounts
+  };
 
   const handleExit = () => {
     useAppStore.getState().navigate('home');
@@ -232,6 +247,7 @@ export function GameScreen() {
           bestScore={meta.mode === 'endless' ? Math.max(endlessBest, state.score) : undefined}
           onRetry={handleRestart}
           onExit={handleExit}
+          onNext={nextLevel ? handleNextLevel : undefined}
         />
       )}
     </div>

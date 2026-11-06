@@ -11,10 +11,6 @@ export function midiToHz(midi: number): number {
   return A4_HZ * Math.pow(2, (midi - MIDI_A4) / 12);
 }
 
-export function semitoneHz(semitones: number, baseMidi = MIDI_A4): number {
-  return midiToHz(baseMidi + semitones);
-}
-
 /** Pentatonic rise ladder for combos — ascending, ~1 octave-ish spread. */
 export const COMBO_LADDER = [0, 4, 7, 12, 16, 19, 24, 28, 31, 36];
 
@@ -46,41 +42,56 @@ export const VICTORY_ARP = [64, 67, 71, 72, 79];
 export const DEFEAT_ARP = [56, 49];
 
 /**
- * Background music loop — warm 4-chord progression in A minor:
- * Am7 → Fmaj7 → Cmaj → G, with bass roots and an eighth-note arp pattern.
- * MIDI note numbers so voicing is stable across the loop.
+ * Background music loop — bouncy but soothing.
+ * Bright 4-chord pop progression: Cmaj → Gmaj → Am7 → Fmaj7 ("I-V-vi-IV").
+ * The arp bounces across octaves (root to 3rd to octave and back) so it hops
+ * instead of droning; soft synthesized drums layer under it (kick on beats
+ * 1 & 3, clap on 2 & 4, hats rolling every eighth — see DRUM_PATTERN).
  */
 export interface MusicBar {
   pad: number[];      // sustained chord voicing
   bass: number;       // single bass root for the bar
-  arp: number[];      // eighth-note arp over the chord (8 eighths)
+  arp: number[];      // 8 eighth-notes over the chord (bouncy contour)
 }
 
 export const MUSIC_BARS: MusicBar[] = [
   {
+    pad: [60, 64, 67, 71],   // Cmaj
+    bass: 36,                // C2
+    arp: [72, 76, 79, 76, 84, 79, 76, 72],  // octave-hop bounce up-down
+  },
+  {
+    pad: [59, 62, 67, 71],   // Gmaj
+    bass: 31,                // G1
+    arp: [71, 74, 79, 74, 86, 79, 74, 71],  // little leap on 'and of 3'
+  },
+  {
     pad: [57, 60, 64, 67],   // Am7
     bass: 33,                // A1
-    arp: [69, 72, 76, 67, 72, 76, 79, 76],
+    arp: [69, 72, 76, 72, 81, 76, 72, 69],  // warm softening section
   },
   {
     pad: [53, 57, 60, 64],   // Fmaj7
     bass: 29,                // F1
-    arp: [65, 69, 72, 64, 69, 72, 76, 72],
-  },
-  {
-    pad: [60, 64, 67, 71],   // Cmaj (opened up)
-    bass: 36,                // C2
-    arp: [60, 64, 67, 72, 64, 67, 71, 67],
-  },
-  {
-    pad: [55, 59, 62, 65],   // G7 voicing
-    bass: 31,                // G1
-    arp: [67, 71, 74, 62, 67, 71, 74, 71],
+    arp: [69, 72, 77, 72, 81, 77, 72, 69],  // lifts into the loop turn
   },
 ];
 
-/** Seconds per beat at the background tempo (84 BPM). */
-export const MUSIC_BPM = 84;
+/**
+ * Soft boom-bap drums, one bar of 8 eighth-notes.
+ * Index 0 & 4 = beats 1,3 (kick), 2 & 6 = beats 2,4 (clap);
+ * an extra kick on the final eighth pushes the loop turn along.
+ * Hats roll on every eighth; off-beats open up for bounce.
+ */
+export const DRUM_PATTERN = {
+  kick: [true, false, false, false, true, false, false, false],
+  extraKick: [false, false, false, false, false, false, false, true],
+  snare: [false, false, true, false, false, false, true, false],
+  hatOpen: [false, true, false, true, false, true, false, false],
+} as const;
+
+/** Calm but moving groove tempo. */
+export const MUSIC_BPM = 88;
 
 export function beatSeconds(bpm = MUSIC_BPM): number {
   return 60 / bpm;

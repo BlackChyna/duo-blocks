@@ -4,7 +4,7 @@
  */
 import { describe, expect, it } from 'vitest';
 import type { LevelDef } from '../../src/types/game';
-import { campaignUnlockedUpTo, dailySeed, levelStatus, type LevelProgressRecord } from '../../src/pages/levelState';
+import { campaignUnlockedUpTo, dailySeed, levelStatus, nextCampaignLevel, type LevelProgressRecord } from '../../src/pages/levelState';
 
 function lvl(n: number, id = `L${String(n).padStart(4, '0')}`): LevelDef {
   return {
@@ -86,5 +86,21 @@ describe('dailySeed', () => {
     expect(Number.isInteger(seed)).toBe(true);
     expect(seed).toBeGreaterThanOrEqual(0);
     expect(seed).toBeLessThanOrEqual(0xffffffff);
+  });
+});
+
+describe('nextCampaignLevel (seamless next-level flow)', () => {
+  it('returns level n+1 for any cleared campaign level', () => {
+    expect(nextCampaignLevel(1)?.number).toBe(2);
+    expect(nextCampaignLevel(249)?.number).toBe(250);
+    expect(nextCampaignLevel(499)?.number).toBe(500);
+    expect(nextCampaignLevel(499)?.id).toBe('L0500');
+  });
+
+  it('returns null on the last level and invalid input', () => {
+    expect(nextCampaignLevel(500)).toBeNull();
+    expect(nextCampaignLevel(501)).toBeNull();
+    expect(nextCampaignLevel(0)).toBeNull();
+    expect(nextCampaignLevel(-3)).toBeNull();
   });
 });
