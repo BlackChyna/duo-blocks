@@ -51,7 +51,7 @@ export const ACCENT: Record<AccentKey, { text: string; grad: string; ring: strin
 export function ScreenShell({ children, className = '' }: { children: ReactNode; className?: string }) {
   return (
     <div className={`min-h-screen w-full overflow-x-hidden ${className}`}>
-      <div className="safe-top safe-bottom mx-auto flex w-full max-w-[480px] flex-col gap-4 px-4 pt-4 pb-10">
+      <div className="safe-top safe-bottom mx-auto flex w-full max-w-[480px] flex-col gap-4 px-4 pt-5 pb-10">
         {children}
       </div>
     </div>
