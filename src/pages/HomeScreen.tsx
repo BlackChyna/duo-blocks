@@ -9,6 +9,7 @@ import { usePlayerStore } from '../store/playerStore';
 import { services } from '../services';
 import { dailySeed } from './levelState';
 import { goScreen } from '../screens';
+import { AudioToggle } from '../components/AudioToggle';
 import { PlayerAvatar, PrimaryButton, ScreenShell, SectionTitle, StatCard } from '../components/Shared';
 
 function greeting(): string {
@@ -77,9 +78,12 @@ export default function HomeScreen() {
           </p>
           <h1 className="truncate text-2xl font-black">{profile?.username ?? 'Player'}</h1>
         </div>
-        <button type="button" onClick={() => goScreen('profile')} aria-label="Open profile" className="transition active:scale-95">
-          <PlayerAvatar name={profile?.username ?? 'Cyril'} />
-        </button>
+        <div className="flex items-center gap-2">
+          <AudioToggle />
+          <button type="button" onClick={() => goScreen('profile')} aria-label="Open profile" className="transition active:scale-95">
+            <PlayerAvatar name={profile?.username ?? 'Cyril'} />
+          </button>
+        </div>
       </header>
 
       {/* opponent card */}

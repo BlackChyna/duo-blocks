@@ -8,6 +8,7 @@ import type {
   LevelDef,
 } from '../types/game';
 import { engine } from '../features/game/engine';
+import { audio } from '../features/game/audio/audioEngine';
 import { usePlayerStore } from './playerStore';
 
 export interface SessionMeta {
@@ -48,6 +49,9 @@ export const useGameStore = create<GameStoreState>((set, get) => ({
     const rows = meta.level?.boardRows ?? 8;
     const cols = meta.level?.boardCols ?? 8;
     const seed = meta.sharedSeed ?? meta.level?.seed ?? Date.now() >>> 0;
+    // entering a game gets music rolling regardless of where the user came from
+    audio.startMusic();
+    audio.armAutoplay();
     const st = engine.createGameState({
       rows,
       cols,

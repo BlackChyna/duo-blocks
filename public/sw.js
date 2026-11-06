@@ -1,5 +1,5 @@
 /**
- * DUO BLOCKS service worker — duo-blocks-v3.
+ * DUO BLOCKS service worker — duo-blocks-v4.
  *
  * Strategies:
  *  - precache core shell (start_url, index.html, manifest, favicon) for the
@@ -12,7 +12,7 @@
  * APPLE TOUCH ICON NOTE: /duo-blocks/icons/apple-touch-icon.png ships with
  * the orchestrator's PNG drop and is referenced from index.html.
  */
-const VERSION = 'duo-blocks-v3';
+const VERSION = 'duo-blocks-v4';
 const INDEX_HTML = '/duo-blocks/index.html';
 const CORE = [
   '/duo-blocks/',

@@ -10,6 +10,7 @@ import type { ReactNode } from 'react';
 import { useAppStore } from '../store/appStore';
 import type { ScreenName } from '../store/appStore';
 import { usePlayerStore } from '../store/playerStore';
+import { audio } from '../features/game/audio/audioEngine';
 import AuthScreen from '../pages/AuthScreen';
 import HomeScreen from '../pages/HomeScreen';
 import CampaignScreen from '../pages/CampaignScreen';
@@ -58,6 +59,17 @@ export function AppScreens() {
       const initial: ScreenName = usePlayerStore.getState().profile ? 'home' : 'auth';
       app.navigate(initial, SCREEN_ELEMENTS[initial]);
     }
+    // Music resumes on the dashboard even when the user is already signed in
+    // (app reload / PWA reopen). Browsers need a gesture first, so we try
+    // immediately and arm a first-tap fallback for locked-down cases.
+    if (usePlayerStore.getState().profile) {
+      audio.startMusic();
+      audio.armAutoplay();
+    }
+    const unsub = usePlayerStore.subscribe((state) => {
+      if (state.profile) audio.armAutoplay();
+    });
+    return () => { unsub(); };
   }, []);
 
   // Keep the rendered element in sync even when a page navigates bare —

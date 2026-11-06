@@ -202,6 +202,23 @@ class AudioEngine {
     }
   }
 
+  /**
+   * Arms a one-shot first-gesture fallback: browsers may block the initial
+   * resume() before any interaction, so the very next pointerdown / key
+   * presses music back on. Idempotent; no-op once music is already rolling.
+   */
+  private armed = false;
+  armAutoplay(): void {
+    if (this.armed) return;
+    this.armed = true;
+    const kick = () => {
+      if (this.mode === 'all' && this.schedulerId === null) this.startMusic();
+    };
+    window.addEventListener('pointerdown', kick, { once: true });
+    window.addEventListener('pointermove', kick, { once: true });
+    window.addEventListener('keydown', kick, { once: true });
+  }
+
   isMusicPlaying(): boolean {
     return this.schedulerId !== null;
   }
